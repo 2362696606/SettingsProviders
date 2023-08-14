@@ -1,5 +1,5 @@
 ﻿using System;
-using Bluegrams.Application;
+using Tcqz.ConfigruationManager;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace SettingsProviderTests
@@ -19,6 +19,10 @@ namespace SettingsProviderTests
     [TestClass]
     public class PortableJsonSettingsProviderTests : SettingsProviderTestsBase
     {
+        /// <summary>
+        /// test
+        /// </summary>
+        /// <param name="context">aaa</param>
         [ClassInitialize]
         public static void Initialize(TestContext context)
         {
@@ -27,4 +31,5 @@ namespace SettingsProviderTests
             Properties.Settings.Default.Reset();
         }
     }
+
 }

@@ -5,8 +5,11 @@ using System.Linq;
 using System.Xml.Linq;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
+// ReSharper disable MemberCanBePrivate.Global
 
-namespace Bluegrams.Application
+// ReSharper disable CheckNamespace
+namespace Tcqz.ConfigruationManager
+    // ReSharper restore CheckNamespace
 {
     /// <summary>
     /// Provides portable, persistent application settings in JSON format.
@@ -17,7 +20,9 @@ namespace Bluegrams.Application
         /// Specifies the name of the settings file to be used.
         /// </summary>
         public static string SettingsFileName { get; set; } = "settings.json";
-
+        /// <summary>
+        /// Name
+        /// </summary>
         public override string Name => "PortableJsonSettingsProvider";
 
         /// <summary>
@@ -28,7 +33,10 @@ namespace Bluegrams.Application
             => ApplyProvider(new PortableJsonSettingsProvider(), settingsList);
 
         private string ApplicationSettingsFile => Path.Combine(SettingsDirectory, SettingsFileName);
-
+        /// <summary>
+        /// Reset Config
+        /// </summary>
+        /// <param name="context"></param>
         public override void Reset(SettingsContext context)
         {
             if (File.Exists(ApplicationSettingsFile))
@@ -66,6 +74,12 @@ namespace Bluegrams.Application
             return jObject;
         }
 
+        /// <summary>
+        /// Get property values
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="collection"></param>
+        /// <returns></returns>
         public override SettingsPropertyValueCollection GetPropertyValues(SettingsContext context,
             SettingsPropertyCollection collection)
         {
@@ -74,22 +88,28 @@ namespace Bluegrams.Application
             // iterate through settings to be retrieved
             foreach (SettingsProperty setting in collection)
             {
-                SettingsPropertyValue value = new SettingsPropertyValue(setting);
-                value.IsDirty = false;
-                //Set serialized value to element from file. This will be deserialized by SettingsPropertyValue when needed.
-                value.SerializedValue = getSettingsValue(jObject, (string) context["GroupName"], setting);
+                SettingsPropertyValue value = new SettingsPropertyValue(setting)
+                {
+                    IsDirty = false,
+                    //Set serialized value to element from file. This will be deserialized by SettingsPropertyValue when needed.
+                    SerializedValue = GetSettingsValue(jObject, (string) context["GroupName"], setting)
+                };
                 values.Add(value);
             }
 
             return values;
         }
-
+        /// <summary>
+        /// Set Property Values
+        /// </summary>
+        /// <param name="context"><see cref="SettingsContext">SettingsContext</see></param>
+        /// <param name="collection"></param>
         public override void SetPropertyValues(SettingsContext context, SettingsPropertyValueCollection collection)
         {
             JObject jObject = GetJObject();
             foreach (SettingsPropertyValue value in collection)
             {
-                setSettingsValue(jObject, (string) context["GroupName"], value);
+                SetSettingsValue(jObject, (string) context["GroupName"], value);
             }
 
             try
@@ -104,16 +124,16 @@ namespace Bluegrams.Application
             }
         }
 
-        private object getSettingsValue(JObject jObject, string scope, SettingsProperty prop)
+        private object GetSettingsValue(JObject jObject, string scope, SettingsProperty prop)
         {
-            object result = null;
+            object result;
             if (!IsUserScoped(prop))
-                return result;
+                return null;
             //determine the location of the settings property
             JObject settings = (JObject) jObject.SelectToken("userSettings");
             if (IsRoaming(prop))
-                settings = (JObject) settings["roaming"];
-            else settings = (JObject) settings["PC_" + Environment.MachineName];
+                settings = (JObject) settings?["roaming"];
+            else settings = (JObject) settings?["PC_" + Environment.MachineName];
             // retrieve the value or set to default if available
             if (settings != null && settings[scope] != null)
             {
@@ -142,15 +162,15 @@ namespace Bluegrams.Application
             return result;
         }
 
-        private void setSettingsValue(JObject jObject, string scope, SettingsPropertyValue value)
+        private void SetSettingsValue(JObject jObject, string scope, SettingsPropertyValue value)
         {
             if (!IsUserScoped(value.Property)) return;
             //determine the location of the settings property
             JObject settings = (JObject) jObject.SelectToken("userSettings");
             JObject settingsLoc;
             if (IsRoaming(value.Property))
-                settingsLoc = (JObject) settings["roaming"];
-            else settingsLoc = (JObject) settings["PC_" + Environment.MachineName];
+                settingsLoc = (JObject) settings?["roaming"];
+            else settingsLoc = (JObject) settings?["PC_" + Environment.MachineName];
             // the serialized value to be saved
             JToken serialized;
             if (value.SerializedValue == null) serialized = new JValue("");
@@ -172,7 +192,7 @@ namespace Bluegrams.Application
                 else settingsSection = "PC_" + Environment.MachineName;
                 settingsLoc = new JObject(new JProperty(scope,
                     new JObject(new JProperty(value.Name, serialized))));
-                settings.Add(settingsSection, settingsLoc);
+                settings?.Add(settingsSection, settingsLoc);
             }
             else
             {
@@ -188,18 +208,24 @@ namespace Bluegrams.Application
             }
         }
     }
-
+    /// <summary>
+    /// json
+    /// </summary>
+    // ReSharper disable once ClassNeverInstantiated.Global
     public class JsonUtility
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="original"></param>
+        /// <returns></returns>
         public static JObject SortPropertiesAlphabetically(JObject original)
         {
             var result = new JObject();
 
             foreach (var property in original.Properties().ToList().OrderBy(p => p.Name))
             {
-                var value = property.Value as JObject;
-
-                if (value != null)
+                if (property.Value is JObject value)
                 {
                     value = SortPropertiesAlphabetically(value);
                     result.Add(property.Name, value);
